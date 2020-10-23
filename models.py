@@ -305,7 +305,7 @@ def MP_Nguyen_2020(phi_in, th_in, Pd, Pm, Bz, omega, gamma):
     alpha3 = a[8]*np.cos(omega)
 
     alpha = alpha0+alpha1*np.cos(phi)+alpha2*np.sin(phi)**2+alpha3*np.cos(phi)**2
-    return r0*inv_cos(th)**
+    return r0*inv_cos(th)**alpha
 
 
 def MP_Liu2015(phi_in, th_in, Pd, Pm, Bx, By, Bz, tilt=0):
