@@ -254,10 +254,10 @@ def MSH_MF_Kobel1994(x, y, z, x0, x1, xc, B0x, B0y, B0z):
     return Bx, By, Bz
 
 
-def MP_Nguyen_2020(phi_in, th_in, Pd, Pm, Bz, omega, gamma):
+def MP_Nguyen_2021_a(phi_in, th_in, Pd, Pm, Bz, omega, gamma):
     def inv_cos(t):
         return 2/(1+np.cos(t))
-
+    
     ## return an array of phi and theta in the right ranges of values
     arr = type(np.array([]))
 
@@ -284,26 +284,27 @@ def MP_Nguyen_2020(phi_in, th_in, Pd, Pm, Bz, omega, gamma):
         if(el):
             th = -th
             phi = phi+np.pi
-
-            #coefficients
-    a = [10.778,
+            
+    #coefficients
+    a = [10.73,
          -0.150,
-         0.0227,
-         0.207,
-         1.62,
-         0.558,
-         0.105,
+         0.0208,
+         0.38 ,
+         2.09  ,
+         0.55 ,
+         0.088,
          0.0150,
-         -0.0839]
-
+         -0.087]
+    
+    
     P = Pd+Pm
     r0 = a[0]*(1+a[2]*np.tanh(a[3]*Bz+a[4]))*P**(a[1])
-
+    
     alpha0 = a[5]
     alpha1 = a[6]*gamma
     alpha2 = a[7]*np.cos(omega)
     alpha3 = a[8]*np.cos(omega)
-
+    
     alpha = alpha0+alpha1*np.cos(phi)+alpha2*np.sin(phi)**2+alpha3*np.cos(phi)**2
     return r0*inv_cos(th)**alpha
 
@@ -364,3 +365,116 @@ def MP_Liu2015(phi_in, th_in, Pd, Pm, Bx, By, Bz, tilt=0):
 
     r = (r0*(2/(1+np.cos(th)))**alpha)*(1-0.1*C*np.cos(phi)**2)
     return r
+
+def Q_MHD(a, phi_in, th_in, P, Bz, tilt=0):
+   # Returns the indentation term following the expression established in Liu et al. (2015) and adapted in Nguyen et al. (2021)
+    arr = type(np.array([]))
+
+    if(type(th_in) == arr):
+        th = th_in.copy()
+    else:
+        th = th_in
+
+    if(type(phi_in) == arr):
+        phi = phi_in.copy()
+    else:
+        phi = phi_in
+
+    el = th_in < 0.
+    if(type(el) == arr):
+        if(el.any()):
+            th[el] = -th[el]
+
+            if(type(phi) == type(arr)):
+                phi[el] = phi[el]+np.pi
+            else:
+                phi = phi*np.ones(th.shape)+np.pi*el
+    else:
+        if(el):
+            th = -th
+            phi = phi+np.pi
+
+
+
+
+    l_n = (a[1]+a[2]*np.tanh(a[3]*(Bz+a[4])))*(1-a[5]*tilt)
+    l_s = (a[1]+a[2]*np.tanh(a[3]*(Bz+a[4])))*(1+a[5]*tilt)
+    w = (a[6]+a[7]*np.log(P))*(1+a[8]*tilt**2)
+
+
+    C = np.exp(-abs(th-l_n)/w)*(1+np.sign(np.cos(phi)))+np.exp(-abs(th-l_s)/w)*(1+np.sign(-np.cos(phi)))
+
+    Q =a[0]*C*np.cos(phi)**2
+    return Q
+
+
+def MP_GMN_2021_b(phi_in, th_in, Pd, Pm, Bz, omega, gamma, Q='non_indented'):
+    a = [ 10.85,
+         -0.15,
+         2.70e-02,
+         2.96e-01,
+         2.14,
+         5.49e-01,
+         7.45e-02,
+         1.0e-02,
+        -7.13e-02,
+         1.23e-01,
+         8.77e-01,
+         3.29e-01,
+         2.11e-01,
+         1.013e+01,
+         4.64e-01,
+         3.26e-01,
+         8.35e-02,
+         7.21e-03]
+    
+    P = Pd+Pm
+
+    if Q == 'non_indented':
+        q_value = 0
+    elif Q == 'indented':
+        q_value = Q_MHD(a[9:], phi_in, th_in, P, Bz, gamma)
+    else:
+        raise ValueError('the only possible values of Q are "indented" and "non indented"')
+        
+        
+    def inv_cos(t):
+    return 2/(1+np.cos(t))
+
+    ## return an array of phi and theta in the right ranges of values
+    arr = type(np.array([]))
+
+    if(type(th_in) == arr):
+        th = th_in.copy()
+    else:
+        th = th_in
+
+    if(type(phi_in) == arr):
+        phi = phi_in.copy()
+    else:
+        phi = phi_in
+
+    el = th_in < 0.
+    if(type(el) == arr):
+        if(el.any()):
+            th[el] = -th[el]
+
+            if(type(phi) == type(arr)):
+                phi[el] = phi[el]+np.pi
+            else:
+                phi = phi*np.ones(th.shape)+np.pi*el
+    else:
+        if(el):
+            th = -th
+            phi = phi+np.pi
+            
+    #coefficients
+    r0 = a[0]*(1+a[2]*np.tanh(a[3]*Bz+a[4]))*P**(a[1])
+    
+    alpha0 = a[5]
+    alpha1 = a[6]*gamma
+    alpha2 = a[7]*np.cos(omega)
+    alpha3 = a[8]*np.cos(omega)
+    
+    alpha = alpha0+alpha1*np.cos(phi)+alpha2*np.sin(phi)**2+alpha3*np.cos(phi)**2
+    return (1-q_value)*r0*inv_cos(th)**alpha
